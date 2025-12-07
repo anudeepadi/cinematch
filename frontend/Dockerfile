@@ -31,6 +31,9 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 # Default port (Railway will override via $PORT)
 ENV PORT=80
 
+# Only substitute PORT variable (protect nginx variables like $uri)
+ENV NGINX_ENVSUBST_FILTER=PORT
+
 # Expose dynamic port
 EXPOSE $PORT
 
