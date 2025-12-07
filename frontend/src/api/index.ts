@@ -5,3 +5,4 @@ export { interactionsApi } from './interactions';
 export { recommendationsApi } from './recommendations';
 export { companionsApi } from './companions';
 export { usersApi } from './users';
+export { chatApi } from './chat';

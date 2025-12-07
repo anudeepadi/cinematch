@@ -92,20 +92,8 @@ export function RecommendationStack({
   }
 
   if (cards.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[600px] text-center">
-        <div className="w-20 h-20 rounded-full bg-zinc-800/50 flex items-center justify-center mb-4">
-          <span className="text-4xl">🎬</span>
-        </div>
-        <h3 className="text-xl font-semibold text-white mb-2">No recommendations yet</h3>
-        <p className="text-zinc-400 mb-6 max-w-sm">
-          Select your mood and preferences above to get personalized movie recommendations
-        </p>
-        <Button onClick={onRefresh} icon={<Sparkles size={18} />}>
-          Get Recommendations
-        </Button>
-      </div>
-    );
+    // Empty state is handled by parent component
+    return null;
   }
 
   if (currentIndex >= cards.length) {

@@ -219,3 +219,20 @@ export interface ApiError {
   detail: string;
   status_code?: number;
 }
+
+// Chat types
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  model?: 'claude' | 'openai' | 'gemini';
+  movieSuggestions?: ChatMovieSuggestion[];
+}
+
+export interface ChatMovieSuggestion {
+  title: string;
+  year?: number;
+  poster_url?: string;
+  movie_id?: number;
+}
