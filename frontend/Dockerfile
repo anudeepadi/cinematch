@@ -22,13 +22,16 @@ RUN npm run build
 # Production stage - serve with nginx
 FROM nginx:alpine
 
-# Copy custom nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx config as template (nginx will substitute $PORT at runtime)
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 # Copy built files from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Expose port 80
-EXPOSE 80
+# Default port (Railway will override via $PORT)
+ENV PORT=80
+
+# Expose dynamic port
+EXPOSE $PORT
 
 CMD ["nginx", "-g", "daemon off;"]
