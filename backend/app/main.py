@@ -28,8 +28,9 @@ cors_origins = [
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:3002",
-    # Railway production URLs
+    # Railway production URLs (add all variations)
     "https://trustworthy-light-production-3a0c.up.railway.app",
+    "https://trustworthy-light-production-1e4e.up.railway.app",
 ]
 # Add production frontend URL if configured
 if settings.frontend_url:
@@ -41,6 +42,7 @@ if settings.frontend_url:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
+    allow_origin_regex=r"https://.*\.up\.railway\.app",  # Allow all Railway URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
