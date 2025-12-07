@@ -24,6 +24,31 @@ from app.database import Base
 from app.models import User, Movie, Genre, UserMovieInteraction, WatchHistory, UserPreference
 
 
+def parse_datetime(value):
+    """Convert SQLite datetime string to Python datetime or None."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    try:
+        # Try common formats
+        for fmt in ['%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d']:
+            try:
+                return datetime.strptime(str(value), fmt)
+            except ValueError:
+                continue
+        return None
+    except Exception:
+        return None
+
+
+def parse_bool(value):
+    """Convert SQLite integer (0/1) to Python boolean."""
+    if value is None:
+        return False
+    return bool(value)
+
+
 def get_sqlite_connection():
     """Connect to local SQLite database."""
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "cinematch.db")
@@ -51,6 +76,31 @@ def get_supabase_url():
     return url
 
 
+async def drop_existing_tables(engine):
+    """Drop existing tables that might conflict."""
+    print("🗑️  Dropping existing tables (if any)...")
+    async with engine.begin() as conn:
+        # Drop tables in reverse dependency order
+        tables_to_drop = [
+            'recommendation_feedback',
+            'recommendation_sessions',
+            'companion_links',
+            'watch_history',
+            'user_movie_interactions',
+            'user_preferences',
+            'movie_genres',
+            'movies',
+            'genres',
+            'users'
+        ]
+        for table in tables_to_drop:
+            try:
+                await conn.execute(text(f'DROP TABLE IF EXISTS {table} CASCADE'))
+            except Exception as e:
+                print(f"   Warning dropping {table}: {e}")
+    print("✅ Existing tables dropped")
+
+
 async def create_tables(engine):
     """Create all tables in Supabase PostgreSQL."""
     print("📦 Creating tables in Supabase...")
@@ -69,12 +119,12 @@ def read_sqlite_data(conn):
     data['genres'] = cursor.fetchall()
     print(f"   📖 Read {len(data['genres'])} genres")
 
-    # Read movies
+    # Read movies (note: "cast" is a reserved keyword, so we quote it)
     cursor.execute("""
         SELECT id, tmdb_id, imdb_id, title, original_title, tagline, overview,
                release_date, release_year, runtime, vote_average, vote_count, popularity,
                poster_path, backdrop_path, original_language, spoken_languages,
-               production_countries, cast, directors, keywords, mood_scores,
+               production_countries, "cast", directors, keywords, mood_scores,
                content_embedding, is_adult, status, created_at, updated_at
         FROM movies
     """)
@@ -152,7 +202,7 @@ async def insert_data(session: AsyncSession, data: dict):
                             id, tmdb_id, imdb_id, title, original_title, tagline, overview,
                             release_date, release_year, runtime, vote_average, vote_count, popularity,
                             poster_path, backdrop_path, original_language, spoken_languages,
-                            production_countries, cast, directors, keywords, mood_scores,
+                            production_countries, "cast", directors, keywords, mood_scores,
                             content_embedding, is_adult, status, created_at, updated_at
                         ) VALUES (
                             :id, :tmdb_id, :imdb_id, :title, :original_title, :tagline, :overview,
@@ -167,13 +217,13 @@ async def insert_data(session: AsyncSession, data: dict):
                     {
                         "id": row[0], "tmdb_id": row[1], "imdb_id": row[2], "title": row[3],
                         "original_title": row[4], "tagline": row[5], "overview": row[6],
-                        "release_date": row[7], "release_year": row[8], "runtime": row[9],
+                        "release_date": parse_datetime(row[7]), "release_year": row[8], "runtime": row[9],
                         "vote_average": row[10], "vote_count": row[11], "popularity": row[12],
                         "poster_path": row[13], "backdrop_path": row[14], "original_language": row[15],
                         "spoken_languages": row[16], "production_countries": row[17],
                         "cast": row[18], "directors": row[19], "keywords": row[20],
                         "mood_scores": row[21], "content_embedding": row[22], "is_adult": row[23],
-                        "status": row[24], "created_at": row[25], "updated_at": row[26]
+                        "status": row[24], "created_at": parse_datetime(row[25]), "updated_at": parse_datetime(row[26])
                     }
                 )
             await session.commit()
@@ -224,8 +274,8 @@ async def insert_data(session: AsyncSession, data: dict):
                     "mood_action": row[10], "mood_comedy": row[11], "mood_drama": row[12],
                     "mood_horror": row[13], "mood_romance": row[14], "mood_scifi": row[15],
                     "mood_thriller": row[16], "mood_documentary": row[17], "watch_alone_preference": row[18],
-                    "is_active": row[19], "is_verified": row[20], "is_onboarded": row[21],
-                    "created_at": row[22], "updated_at": row[23], "last_login": row[24]
+                    "is_active": parse_bool(row[19]), "is_verified": parse_bool(row[20]), "is_onboarded": parse_bool(row[21]),
+                    "created_at": parse_datetime(row[22]), "updated_at": parse_datetime(row[23]), "last_login": parse_datetime(row[24])
                 }
             )
         await session.commit()
@@ -250,7 +300,7 @@ async def insert_data(session: AsyncSession, data: dict):
                     "id": row[0], "user_id": row[1], "movie_id": row[2],
                     "interaction_type": row[3], "rating": row[4],
                     "mood_at_interaction": row[5], "watching_with": row[6],
-                    "context_notes": row[7], "created_at": row[8]
+                    "context_notes": row[7], "created_at": parse_datetime(row[8])
                 }
             )
         await session.commit()
@@ -282,7 +332,7 @@ async def insert_data(session: AsyncSession, data: dict):
                     "classics_interest": row[5], "actor_preferences": row[6],
                     "director_preferences": row[7], "keyword_preferences": row[8],
                     "avg_rating": row[9], "total_watched": row[10], "total_passed": row[11],
-                    "favorite_count": row[12], "preference_embedding": row[13], "updated_at": row[14]
+                    "favorite_count": row[12], "preference_embedding": row[13], "updated_at": parse_datetime(row[14])
                 }
             )
         await session.commit()
@@ -335,8 +385,9 @@ async def main():
     data = read_sqlite_data(sqlite_conn)
     sqlite_conn.close()
 
-    # Create tables in Supabase
+    # Drop existing tables and create fresh ones
     print()
+    await drop_existing_tables(engine)
     await create_tables(engine)
 
     # Insert data
