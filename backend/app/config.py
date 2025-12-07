@@ -16,12 +16,14 @@ class Settings(BaseSettings):
 
     @property
     def async_database_url(self) -> str:
-        """Convert database URL to async version"""
-        url = self.database_url
-        # Railway/Heroku provides postgres:// but SQLAlchemy needs postgresql://
+        """Convert database URL to async version. Prefers Supabase if configured."""
+        # Use Supabase PostgreSQL if configured, otherwise fall back to database_url
+        url = self.supabase_db_url if self.supabase_db_url else self.database_url
+
+        # Convert to async driver format
         if url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql+asyncpg://", 1)
-        elif url.startswith("postgresql://"):
+        elif url.startswith("postgresql://") and "+asyncpg" not in url:
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
         return url
 
@@ -43,6 +45,8 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_key: str = ""
     supabase_secret_key: str = ""
+    # Supabase PostgreSQL direct connection (from Supabase Dashboard → Settings → Database)
+    supabase_db_url: str = ""
 
     # Recommendation settings
     recommendation_batch_size: int = 20

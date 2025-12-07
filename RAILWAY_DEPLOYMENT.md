@@ -1,19 +1,45 @@
 # Railway Deployment Guide
 
-This guide explains how to deploy CineMatch to Railway with PostgreSQL.
+This guide explains how to deploy CineMatch to Railway using Supabase as the database.
 
 ## Prerequisites
 
 1. A Railway account (https://railway.app)
 2. Railway CLI installed (`npm i -g @railway/cli`)
-3. Your API keys ready:
+3. A Supabase project (https://supabase.com) - this is your database
+4. Your API keys ready:
    - TMDB API Key (required for movie data)
    - At least one AI API key (OpenAI, Anthropic, or Google)
-   - Supabase credentials (optional, for cloud sync)
+   - Supabase credentials (required)
 
 ## Deployment Steps
 
-### Step 1: Create Railway Project
+### Step 1: Set Up Supabase Database
+
+1. Go to https://supabase.com and create a project (or use existing)
+2. Go to **Settings → Database → Connection string** (URI tab)
+3. Copy the connection string - it looks like:
+   ```
+   postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
+   ```
+4. Save this as `SUPABASE_DB_URL`
+
+### Step 2: Migrate Local Data to Supabase
+
+Before deploying, migrate your local SQLite data to Supabase:
+
+```bash
+cd backend
+
+# Add SUPABASE_DB_URL to your .env file
+echo 'SUPABASE_DB_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres' >> .env
+
+# Run migration script
+source venv/bin/activate
+python scripts/migrate_to_supabase.py
+```
+
+### Step 3: Create Railway Project
 
 ```bash
 # Login to Railway
@@ -23,13 +49,7 @@ railway login
 railway init
 ```
 
-### Step 2: Add PostgreSQL Database
-
-1. Go to your Railway project dashboard
-2. Click "New" → "Database" → "PostgreSQL"
-3. Railway will automatically create a `DATABASE_URL` variable
-
-### Step 3: Deploy Backend
+### Step 4: Deploy Backend
 
 ```bash
 cd backend
@@ -45,7 +65,7 @@ railway up
 
 | Variable | Description |
 |----------|-------------|
-| `DATABASE_URL` | Auto-set by Railway PostgreSQL |
+| `SUPABASE_DB_URL` | PostgreSQL connection string from Supabase |
 | `SECRET_KEY` | Generate: `openssl rand -hex 32` |
 | `DEBUG` | `false` |
 | `TMDB_API_KEY` | Your TMDB API key |
@@ -53,11 +73,11 @@ railway up
 | `ANTHROPIC_API_KEY` | Anthropic API key (optional) |
 | `GOOGLE_API_KEY` | Google AI API key (optional) |
 | `FRONTEND_URL` | Your frontend URL (set after deploying frontend) |
-| `SUPABASE_URL` | Supabase project URL (optional) |
-| `SUPABASE_KEY` | Supabase anon key (optional) |
-| `SUPABASE_SECRET_KEY` | Supabase service role key (optional) |
+| `SUPABASE_URL` | Supabase project URL (for API access) |
+| `SUPABASE_KEY` | Supabase anon key |
+| `SUPABASE_SECRET_KEY` | Supabase service role key |
 
-### Step 4: Deploy Frontend
+### Step 5: Deploy Frontend
 
 ```bash
 cd frontend
@@ -72,7 +92,7 @@ railway variables set VITE_API_URL=https://your-backend-url.railway.app/api
 railway up
 ```
 
-### Step 5: Configure CORS
+### Step 6: Configure CORS
 
 After both services are deployed:
 
@@ -100,21 +120,25 @@ For monorepo deployment:
 ### Backend (.env or Railway Variables)
 
 ```env
-# Required
-DATABASE_URL=postgresql://user:pass@host:5432/db
+# Database - Supabase PostgreSQL (REQUIRED)
+SUPABASE_DB_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres
+
+# Security (REQUIRED)
 SECRET_KEY=your-secret-key-min-32-chars
+
+# TMDB (REQUIRED for movie data)
 TMDB_API_KEY=your-tmdb-api-key
 
-# AI APIs (at least one required)
+# AI APIs (at least one required for recommendations)
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 GOOGLE_API_KEY=...
 
-# Production
+# Production settings
 DEBUG=false
 FRONTEND_URL=https://your-frontend.railway.app
 
-# Optional - Supabase
+# Supabase API access (for real-time sync features)
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_KEY=your-anon-key
 SUPABASE_SECRET_KEY=your-service-role-key
@@ -128,11 +152,19 @@ VITE_API_URL=https://your-backend.railway.app/api
 
 ## Database Migration
 
-The app auto-creates tables on startup via SQLAlchemy. For production:
+Use the migration script to transfer your local data to Supabase:
 
-1. Tables are created automatically when backend starts
-2. To seed movies, you can run the seed script locally pointing to production DB
-3. Or create a one-time job in Railway to run the seed
+```bash
+cd backend
+source venv/bin/activate
+python scripts/migrate_to_supabase.py
+```
+
+This script:
+1. Reads all data from local SQLite (users, movies, interactions, preferences)
+2. Creates tables in Supabase PostgreSQL
+3. Inserts all data with proper ID sequences
+4. Verifies migration success
 
 ## Custom Domain (Optional)
 
@@ -149,10 +181,8 @@ The app auto-creates tables on startup via SQLAlchemy. For production:
 
 ## Costs
 
-Railway offers:
-- $5/month free credit (Hobby plan)
-- Pay-as-you-go pricing for usage beyond free tier
-- PostgreSQL included in compute costs
+- **Railway**: $5/month free credit (Hobby plan), pay-as-you-go after
+- **Supabase**: Free tier includes 500MB database, 1GB file storage
 
 ## Troubleshooting
 
@@ -161,8 +191,9 @@ Railway offers:
 - Check Railway logs for the CORS origins being used
 
 ### Database Connection Issues
-- Verify `DATABASE_URL` is set by Railway PostgreSQL
-- Check if PostgreSQL service is running
+- Verify `SUPABASE_DB_URL` is set correctly
+- Check Supabase dashboard for connection status
+- Ensure your IP isn't blocked (Supabase allows all IPs by default)
 
 ### Build Failures
 - Check Dockerfile syntax
@@ -172,3 +203,7 @@ Railway offers:
 ### API Timeouts
 - The recommendation ensemble has a 45-second timeout
 - Consider upgrading Railway plan for more resources if needed
+
+### Migration Issues
+- Ensure `SUPABASE_DB_URL` is set in `.env` before running migration
+- Check that SQLite database exists at `backend/cinematch.db`
