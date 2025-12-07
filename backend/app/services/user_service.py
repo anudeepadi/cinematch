@@ -130,6 +130,8 @@ class UserService:
             if mood.lower() in mood_mapping:
                 setattr(user, mood_mapping[mood.lower()], value)
 
+        # Mark user as onboarded
+        user.is_onboarded = True
         user.updated_at = datetime.utcnow()
         await self.db.commit()
         await self.db.refresh(user)

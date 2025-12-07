@@ -22,10 +22,20 @@ app = FastAPI(
     redirect_slashes=False  # Accept both /path and /path/ without redirects
 )
 
-# CORS middleware
+# CORS middleware - include both local dev and production URLs
+cors_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+]
+# Add production frontend URL if configured
+if settings.frontend_url and settings.frontend_url not in cors_origins:
+    cors_origins.append(settings.frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

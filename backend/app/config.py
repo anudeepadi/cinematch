@@ -6,10 +6,24 @@ import os
 class Settings(BaseSettings):
     # App settings
     app_name: str = "CineMatch - AI Movie Recommender"
-    debug: bool = True
+    debug: bool = os.getenv("DEBUG", "true").lower() == "true"
 
-    # Database
+    # Database - Railway provides DATABASE_URL
     database_url: str = "sqlite+aiosqlite:///./cinematch.db"
+
+    # Frontend URL for CORS (set in Railway)
+    frontend_url: str = "http://localhost:5173"
+
+    @property
+    def async_database_url(self) -> str:
+        """Convert database URL to async version"""
+        url = self.database_url
+        # Railway/Heroku provides postgres:// but SQLAlchemy needs postgresql://
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
 
     # JWT Auth
     secret_key: str = "your-super-secret-key-change-in-production-min-32-chars"

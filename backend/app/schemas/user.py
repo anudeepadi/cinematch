@@ -25,6 +25,7 @@ class UserResponse(BaseModel):
     watch_alone_preference: int = 3
     is_active: bool = True
     is_verified: bool = False
+    is_onboarded: bool = False
     created_at: datetime
     last_login: Optional[datetime] = None
 
