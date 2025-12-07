@@ -11,8 +11,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 
-from app.core.database import get_db
-from app.core.auth import get_current_user
+from app.database import get_db
+from app.auth import get_current_user
 from app.models.user import User
 from app.models.movie import Movie
 from app.config import settings
