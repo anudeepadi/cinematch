@@ -47,7 +47,7 @@ export function DiscoverPage() {
     try {
       const data = await moviesApi.getMovies({
         page: reset ? 1 : page,
-        size: 24,
+        per_page: 24,
         genre_id: selectedGenre || undefined,
         year_min: yearRange.min,
         year_max: yearRange.max,
@@ -121,7 +121,7 @@ export function DiscoverPage() {
     try {
       const data = await moviesApi.getMovies({
         page: nextPage,
-        size: 24,
+        per_page: 24,
         genre_id: selectedGenre || undefined,
         year_min: yearRange.min,
         year_max: yearRange.max,

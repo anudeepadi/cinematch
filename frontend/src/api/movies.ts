@@ -4,7 +4,7 @@ import { Movie, MovieDetails, Genre, PaginatedResponse } from '../types';
 export const moviesApi = {
   getMovies: async (params?: {
     page?: number;
-    size?: number;
+    per_page?: number;
     genre_id?: number;
     year_min?: number;
     year_max?: number;
