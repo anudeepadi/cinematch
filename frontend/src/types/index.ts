@@ -77,7 +77,7 @@ export interface CastMember {
 }
 
 // Interaction types
-export type InteractionType = 'pass' | 'watch' | 'watched' | 'like' | 'dislike';
+export type InteractionType = 'pass' | 'watch' | 'watched' | 'like' | 'dislike' | 'favorite' | 'rating';
 
 export interface Interaction {
   id: number;
