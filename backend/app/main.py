@@ -52,3 +52,21 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+@app.get("/api/status")
+async def api_status():
+    """Check API keys and service configuration"""
+    from app.services.supabase_service import SupabaseService
+
+    return {
+        "status": "running",
+        "services": {
+            "openai": bool(settings.openai_api_key),
+            "anthropic": bool(settings.anthropic_api_key),
+            "google": bool(settings.google_api_key),
+            "tmdb": bool(settings.tmdb_api_key),
+            "supabase": SupabaseService.is_configured(),
+        },
+        "database": "sqlite" if "sqlite" in settings.database_url else "postgresql"
+    }

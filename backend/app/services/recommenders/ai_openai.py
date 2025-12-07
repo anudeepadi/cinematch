@@ -2,6 +2,7 @@
 OpenAI GPT recommender for knowledge-rich recommendations.
 """
 
+import asyncio
 import json
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +10,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
+
+# Timeout for AI API calls (in seconds)
+AI_TIMEOUT = 30
 from app.models.movie import Movie
 from app.services.recommenders.base import (
     BaseRecommender,
@@ -67,14 +71,21 @@ class OpenAIRecommender(BaseRecommender):
         prompt = self._build_prompt(user_preferences, context, candidates, count)
 
         try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are a film expert. Return only valid JSON."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=2000,
-                temperature=0.7
+            # Run synchronous API call in thread pool with timeout
+            def make_request():
+                return self.client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "You are a film expert. Return only valid JSON."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=2000,
+                    temperature=0.7
+                )
+
+            response = await asyncio.wait_for(
+                asyncio.to_thread(make_request),
+                timeout=AI_TIMEOUT
             )
 
             return self._parse_response(
@@ -82,6 +93,9 @@ class OpenAIRecommender(BaseRecommender):
                 candidates
             )
 
+        except asyncio.TimeoutError:
+            print(f"OpenAI API timeout after {AI_TIMEOUT}s")
+            return []
         except Exception as e:
             print(f"OpenAI API error: {e}")
             return []

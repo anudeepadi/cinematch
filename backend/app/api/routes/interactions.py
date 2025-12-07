@@ -95,6 +95,20 @@ async def get_watchlist(
     )
 
 
+@router.get("/watched", response_model=WatchlistResponse)
+async def get_watched(
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get user's watched movies"""
+    service = InteractionService(db)
+    movies = await service.get_watched(current_user.id)
+    return WatchlistResponse(
+        movies=[MovieListItem.model_validate(m) for m in movies],
+        total=len(movies)
+    )
+
+
 @router.get("/favorites", response_model=WatchlistResponse)
 async def get_favorites(
     current_user: CurrentUser,

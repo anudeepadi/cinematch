@@ -287,14 +287,22 @@ class EnsembleRecommender:
         if await self.gemini.is_available():
             sources.append(("gemini", self.gemini))
 
-        # Get recommendations from all sources in parallel
+        # Get recommendations from all sources in parallel with overall timeout
         tasks = []
         for name, recommender in sources:
             tasks.append(
                 recommender.recommend(user_prefs, context, count * 2)
             )
 
-        all_results = await asyncio.gather(*tasks, return_exceptions=True)
+        try:
+            # Wrap gather in a timeout to prevent hanging
+            all_results = await asyncio.wait_for(
+                asyncio.gather(*tasks, return_exceptions=True),
+                timeout=45  # 45 second total timeout for all recommenders
+            )
+        except asyncio.TimeoutError:
+            print("Ensemble timeout - falling back to available results")
+            all_results = [[] for _ in sources]
 
         # Aggregate results using weighted Borda count
         aggregated = self._weighted_borda_count(

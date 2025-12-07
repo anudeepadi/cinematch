@@ -13,6 +13,7 @@ import {
   WatchlistPage,
   OnboardingPage,
   ProfilePage,
+  TrainTastePage,
 } from './pages';
 
 const queryClient = new QueryClient({
@@ -145,6 +146,14 @@ function App() {
             element={
               <OnboardingCheckRoute>
                 <ProfilePage />
+              </OnboardingCheckRoute>
+            }
+          />
+          <Route
+            path="/train"
+            element={
+              <OnboardingCheckRoute>
+                <TrainTastePage />
               </OnboardingCheckRoute>
             }
           />

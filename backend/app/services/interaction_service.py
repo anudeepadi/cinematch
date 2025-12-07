@@ -21,9 +21,11 @@ class InteractionService:
     async def _get_supabase_user_id(self, user_id: int) -> Optional[str]:
         """Get or create Supabase user ID for a local user"""
         if user_id in self._supabase_user_cache:
+            print(f"[SUPABASE] User {user_id} found in cache: {self._supabase_user_cache[user_id]}")
             return self._supabase_user_cache[user_id]
 
         if not SupabaseService.is_configured():
+            print("[SUPABASE] Service not configured in _get_supabase_user_id")
             return None
 
         try:
@@ -32,7 +34,10 @@ class InteractionService:
             user = result.scalar_one_or_none()
 
             if not user:
+                print(f"[SUPABASE] Local user {user_id} not found in database")
                 return None
+
+            print(f"[SUPABASE] Found local user: {user.email}, getting/creating in Supabase...")
 
             # Get or create user in Supabase
             supabase_user = await supabase_service.get_or_create_user(
@@ -43,10 +48,15 @@ class InteractionService:
             if supabase_user:
                 supabase_id = supabase_user["id"]
                 self._supabase_user_cache[user_id] = supabase_id
+                print(f"[SUPABASE] Got Supabase user: {supabase_id}")
                 return supabase_id
+            else:
+                print("[SUPABASE] get_or_create_user returned None")
 
         except Exception as e:
-            logger.error(f"Error getting Supabase user: {e}")
+            print(f"[SUPABASE] Error getting Supabase user: {e}")
+            import traceback
+            traceback.print_exc()
 
         return None
 
@@ -58,27 +68,44 @@ class InteractionService:
         context: Optional[Dict] = None
     ):
         """Sync interaction to Supabase (fire and forget)"""
+        print(f"[SUPABASE] Starting sync for user={user_id}, movie={movie_id}, type={interaction_type}")
+
+        if not SupabaseService.is_configured():
+            print("[SUPABASE] Not configured, skipping sync")
+            return
+
         try:
+            print(f"[SUPABASE] Getting Supabase user ID for local user {user_id}")
             supabase_user_id = await self._get_supabase_user_id(user_id)
             if not supabase_user_id:
+                print(f"[SUPABASE] Could not get Supabase user ID for user {user_id}")
                 return
+
+            print(f"[SUPABASE] Got Supabase user ID: {supabase_user_id}")
 
             # Get movie's TMDB ID
             result = await self.db.execute(select(Movie).where(Movie.id == movie_id))
             movie = result.scalar_one_or_none()
             tmdb_id = movie.tmdb_id if movie else movie_id
 
-            await supabase_service.create_interaction(
+            print(f"[SUPABASE] Creating interaction in Supabase...")
+            sync_result = await supabase_service.create_interaction(
                 user_id=supabase_user_id,
                 movie_id=movie_id,
                 tmdb_id=tmdb_id,
                 interaction_type=interaction_type,
                 context=context
             )
-            logger.debug(f"Synced interaction to Supabase: user={user_id}, movie={movie_id}, type={interaction_type}")
+
+            if sync_result:
+                print(f"[SUPABASE] SUCCESS: Synced interaction - {sync_result}")
+            else:
+                print(f"[SUPABASE] WARNING: Sync returned None")
 
         except Exception as e:
-            logger.warning(f"Failed to sync interaction to Supabase: {e}")
+            print(f"[SUPABASE] ERROR: {e}")
+            import traceback
+            traceback.print_exc()
 
     async def create_interaction(
         self,
@@ -87,16 +114,17 @@ class InteractionService:
     ) -> UserMovieInteraction:
         """Create a new user-movie interaction"""
         # Check if interaction already exists
-        existing = await self.db.execute(
+        result = await self.db.execute(
             select(UserMovieInteraction).where(
                 UserMovieInteraction.user_id == user_id,
                 UserMovieInteraction.movie_id == data.movie_id,
                 UserMovieInteraction.interaction_type == data.interaction_type
             )
         )
-        if existing.scalar_one_or_none():
+        existing = result.scalar_one_or_none()
+        if existing:
             # Update existing
-            interaction = existing.scalar_one_or_none()
+            interaction = existing
             interaction.mood_at_interaction = data.mood_at_interaction
             interaction.watching_with = data.watching_with
             interaction.created_at = datetime.utcnow()
@@ -234,6 +262,20 @@ class InteractionService:
             .where(
                 UserMovieInteraction.user_id == user_id,
                 UserMovieInteraction.interaction_type == "favorite"
+            )
+            .order_by(UserMovieInteraction.created_at.desc())
+        )
+        return list(result.scalars().unique().all())
+
+    async def get_watched(self, user_id: int) -> List[Movie]:
+        """Get user's watched movies"""
+        result = await self.db.execute(
+            select(Movie)
+            .join(UserMovieInteraction)
+            .options(selectinload(Movie.genres))
+            .where(
+                UserMovieInteraction.user_id == user_id,
+                UserMovieInteraction.interaction_type == "watched"
             )
             .order_by(UserMovieInteraction.created_at.desc())
         )

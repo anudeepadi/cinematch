@@ -2,6 +2,7 @@
 Claude AI recommender for nuanced, reasoning-based recommendations.
 """
 
+import asyncio
 import json
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +10,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
+
+# Timeout for AI API calls (in seconds)
+AI_TIMEOUT = 30
 from app.models.movie import Movie
 from app.services.recommenders.base import (
     BaseRecommender,
@@ -69,15 +73,25 @@ class ClaudeRecommender(BaseRecommender):
         prompt = self._build_prompt(user_preferences, context, candidates, count)
 
         try:
-            response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=2000,
-                messages=[{"role": "user", "content": prompt}]
+            # Run synchronous API call in thread pool with timeout
+            def make_request():
+                return self.client.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=2000,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+
+            response = await asyncio.wait_for(
+                asyncio.to_thread(make_request),
+                timeout=AI_TIMEOUT
             )
 
             # Parse response
             return self._parse_response(response.content[0].text, candidates)
 
+        except asyncio.TimeoutError:
+            print(f"Claude API timeout after {AI_TIMEOUT}s")
+            return []
         except Exception as e:
             print(f"Claude API error: {e}")
             return []

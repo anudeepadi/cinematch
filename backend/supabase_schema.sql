@@ -4,12 +4,12 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Users table (links with Supabase Auth)
+-- Users table (can optionally link with Supabase Auth)
 CREATE TABLE IF NOT EXISTS public.users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    auth_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+    auth_id UUID UNIQUE,  -- Optional: links to auth.users if using Supabase Auth
     email VARCHAR(255) UNIQUE NOT NULL,
-    username VARCHAR(100) UNIQUE NOT NULL,
+    username VARCHAR(100) NOT NULL,
     full_name VARCHAR(255),
     avatar_url TEXT,
     preferred_genres JSONB DEFAULT '[]'::jsonb,
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS public.user_movie_interactions (
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     movie_id INTEGER NOT NULL,
     tmdb_id INTEGER NOT NULL,
-    interaction_type VARCHAR(20) NOT NULL CHECK (interaction_type IN ('watch', 'watched', 'pass', 'rate', 'favorite')),
+    interaction_type VARCHAR(20) NOT NULL CHECK (interaction_type IN ('watch', 'watched', 'pass', 'rate', 'favorite', 'like', 'dislike')),
     rating FLOAT CHECK (rating >= 0 AND rating <= 10),
     context JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -175,7 +175,10 @@ CREATE POLICY "Users can update companion links they're part of" ON public.compa
 CREATE POLICY "Users can manage own feedback" ON public.recommendation_feedback
     FOR ALL USING (user_id IN (SELECT id FROM public.users WHERE auth_id = auth.uid()));
 
--- Function to automatically create user profile on auth signup
+-- OPTIONAL: Function to automatically create user profile on Supabase Auth signup
+-- Only run this if you are using Supabase Auth for authentication
+-- The app currently uses its own JWT auth, so this trigger is optional
+/*
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -194,11 +197,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger for auto-creating user profile
+-- Trigger for auto-creating user profile (only if using Supabase Auth)
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+*/
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION public.update_updated_at()

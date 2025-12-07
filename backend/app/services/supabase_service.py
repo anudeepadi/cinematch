@@ -17,15 +17,18 @@ class SupabaseService:
     def get_client(cls) -> Optional[Client]:
         """Get or create Supabase client"""
         if cls._client is None:
-            if not settings.supabase_url or not settings.supabase_key:
+            # Use service role key if available (bypasses RLS), fallback to anon key
+            api_key = settings.supabase_secret_key or settings.supabase_key
+            if not settings.supabase_url or not api_key:
                 logger.warning("Supabase credentials not configured")
                 return None
             try:
                 cls._client = create_client(
                     settings.supabase_url,
-                    settings.supabase_key
+                    api_key
                 )
-                logger.info("Supabase client initialized successfully")
+                key_type = "service role" if settings.supabase_secret_key else "anon"
+                logger.info(f"Supabase client initialized successfully (using {key_type} key)")
             except Exception as e:
                 logger.error(f"Failed to initialize Supabase client: {e}")
                 return None
@@ -34,7 +37,8 @@ class SupabaseService:
     @classmethod
     def is_configured(cls) -> bool:
         """Check if Supabase is properly configured"""
-        return bool(settings.supabase_url and settings.supabase_key)
+        api_key = settings.supabase_secret_key or settings.supabase_key
+        return bool(settings.supabase_url and api_key)
 
     # User operations
     async def get_or_create_user(
@@ -44,18 +48,24 @@ class SupabaseService:
         auth_id: Optional[str] = None
     ) -> Optional[Dict]:
         """Get or create a user in Supabase"""
+        print(f"[SUPABASE SVC] get_or_create_user called for {email}")
         client = self.get_client()
         if not client:
+            print("[SUPABASE SVC] No client available")
             return None
 
         try:
             # Try to find existing user by email
+            print(f"[SUPABASE SVC] Looking for existing user with email {email}")
             result = client.table("users").select("*").eq("email", email).execute()
+            print(f"[SUPABASE SVC] Query result: {result.data}")
 
             if result.data:
+                print(f"[SUPABASE SVC] Found existing user: {result.data[0]}")
                 return result.data[0]
 
             # Create new user
+            print(f"[SUPABASE SVC] Creating new user...")
             user_data = {
                 "email": email,
                 "username": username,
@@ -66,6 +76,7 @@ class SupabaseService:
             }
 
             result = client.table("users").insert(user_data).execute()
+            print(f"[SUPABASE SVC] Insert result: {result.data}")
 
             if result.data:
                 # Also create default preferences
@@ -74,11 +85,14 @@ class SupabaseService:
                     "user_id": user_id,
                     "updated_at": datetime.utcnow().isoformat()
                 }).execute()
+                print(f"[SUPABASE SVC] Created user preferences for {user_id}")
 
             return result.data[0] if result.data else None
 
         except Exception as e:
-            logger.error(f"Error in get_or_create_user: {e}")
+            print(f"[SUPABASE SVC] Error in get_or_create_user: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     async def get_user_by_email(self, email: str) -> Optional[Dict]:
@@ -123,8 +137,10 @@ class SupabaseService:
         context: Optional[Dict] = None
     ) -> Optional[Dict]:
         """Create a movie interaction record"""
+        print(f"[SUPABASE SVC] create_interaction called: user={user_id}, movie={movie_id}, type={interaction_type}")
         client = self.get_client()
         if not client:
+            print("[SUPABASE SVC] No client for create_interaction")
             return None
 
         try:
@@ -139,7 +155,9 @@ class SupabaseService:
                 "updated_at": datetime.utcnow().isoformat()
             }
 
+            print(f"[SUPABASE SVC] Inserting interaction: {data}")
             result = client.table("user_movie_interactions").insert(data).execute()
+            print(f"[SUPABASE SVC] Insert result: {result.data}")
 
             # Update user preferences stats
             await self._update_preference_stats(user_id, interaction_type)
@@ -147,7 +165,9 @@ class SupabaseService:
             return result.data[0] if result.data else None
 
         except Exception as e:
-            logger.error(f"Error creating interaction: {e}")
+            print(f"[SUPABASE SVC] Error creating interaction: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     async def get_user_interactions(

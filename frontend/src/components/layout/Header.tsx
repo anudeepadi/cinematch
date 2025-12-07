@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Film, Search, Heart, User, LogOut, Menu, X } from 'lucide-react';
+import { Film, Search, Heart, User, LogOut, Menu, X, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 
@@ -19,6 +19,7 @@ export function Header() {
     { path: '/discover', label: 'Discover', icon: Search },
     { path: '/recommendations', label: 'For You', icon: Film },
     { path: '/watchlist', label: 'Watchlist', icon: Heart },
+    { path: '/train', label: 'Train Taste', icon: Sparkles },
   ];
 
   const isActive = (path: string) => location.pathname === path;

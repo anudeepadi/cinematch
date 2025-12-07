@@ -2,6 +2,7 @@
 Google Gemini recommender for recent and trending awareness.
 """
 
+import asyncio
 import json
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +10,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
+
+# Timeout for AI API calls (in seconds)
+AI_TIMEOUT = 30
 from app.models.movie import Movie
 from app.services.recommenders.base import (
     BaseRecommender,
@@ -41,7 +45,7 @@ class GeminiRecommender(BaseRecommender):
         if self._model is None:
             import google.generativeai as genai
             genai.configure(api_key=settings.google_api_key)
-            self._model = genai.GenerativeModel('gemini-1.5-flash')
+            self._model = genai.GenerativeModel('gemini-2.0-flash')
         return self._model
 
     async def is_available(self) -> bool:
@@ -68,9 +72,20 @@ class GeminiRecommender(BaseRecommender):
         prompt = self._build_prompt(user_preferences, context, candidates, count)
 
         try:
-            response = self.model.generate_content(prompt)
+            # Run synchronous API call in thread pool with timeout
+            def make_request():
+                return self.model.generate_content(prompt)
+
+            response = await asyncio.wait_for(
+                asyncio.to_thread(make_request),
+                timeout=AI_TIMEOUT
+            )
+
             return self._parse_response(response.text, candidates)
 
+        except asyncio.TimeoutError:
+            print(f"Gemini API timeout after {AI_TIMEOUT}s")
+            return []
         except Exception as e:
             print(f"Gemini API error: {e}")
             return []
@@ -186,7 +201,7 @@ No other text, just the JSON array."""
                             source=self.name,
                             metadata={
                                 "genres": [g.name for g in movie.genres],
-                                "ai_model": "gemini-1.5-flash"
+                                "ai_model": "gemini-2.0-flash"
                             }
                         ))
 
