@@ -28,10 +28,15 @@ cors_origins = [
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:3002",
+    # Railway production URLs
+    "https://trustworthy-light-production-3a0c.up.railway.app",
 ]
 # Add production frontend URL if configured
-if settings.frontend_url and settings.frontend_url not in cors_origins:
-    cors_origins.append(settings.frontend_url)
+if settings.frontend_url:
+    # Handle with and without trailing slash
+    url = settings.frontend_url.rstrip("/")
+    if url not in cors_origins:
+        cors_origins.append(url)
 
 app.add_middleware(
     CORSMiddleware,
