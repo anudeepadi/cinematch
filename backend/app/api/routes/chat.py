@@ -12,7 +12,7 @@ from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 
 from app.database import get_db
-from app.auth import get_current_user
+from app.api.deps import CurrentUser
 from app.models.user import User
 from app.models.movie import Movie
 from app.config import settings
@@ -228,8 +228,8 @@ async def _lookup_movies(
 @router.post("/message", response_model=ChatResponse)
 async def send_message(
     request: ChatRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db)
 ):
     """Send a message to the AI for movie recommendations"""
 
