@@ -1,0 +1,5 @@
+{
+  "name": "CineVibe 3D",
+  "description": "An immersive 3D movie discovery experience using Gemini to find movies based on your mood.",
+  "requestFramePermissions": []
+}
