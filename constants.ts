@@ -1,34 +1,53 @@
-import { Movie } from './types';
+export interface VibePreset {
+  label: string;
+  genres: number[];
+  keywords?: string;
+}
 
-export const MOVIE_DB: Movie[] = [
-  { id: '1', title: 'Inception', year: 2010, genre: 'Sci-Fi', description: 'A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a C.E.O.', rating: 8.8, language: 'EN' },
-  { id: '2', title: 'The Grand Budapest Hotel', year: 2014, genre: 'Comedy', description: 'A writer encounters the owner of an aging high-class hotel, who tells him of his early years serving as a lobby boy in the hotel\'s glorious years under an exceptional concierge.', rating: 8.1, language: 'EN' },
-  { id: '3', title: 'Mad Max: Fury Road', year: 2015, genre: 'Action', description: 'In a post-apocalyptic wasteland, a woman rebels against a tyrannical ruler in search for her homeland with the aid of a group of female prisoners, a psychotic worshiper, and a drifter.', rating: 8.1, language: 'EN' },
-  { id: '4', title: 'Eternal Sunshine', year: 2004, genre: 'Romance', description: 'When their relationship turns sour, a couple undergoes a medical procedure to have each other erased from their memories.', rating: 8.3, language: 'EN' },
-  { id: '5', title: 'The Dark Knight', year: 2008, genre: 'Action', description: 'When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests of his ability to fight injustice.', rating: 9.0, language: 'EN' },
-  { id: '6', title: 'Spirited Away', year: 2001, genre: 'Animation', description: 'A sullen ten-year-old girl wanders into a world ruled by gods, witches, and spirits where humans are changed into beasts.', rating: 8.6, language: 'JA' },
-  { id: '7', title: 'Parasite', year: 2019, genre: 'Thriller', description: 'Greed and class discrimination threaten the newly formed symbiotic relationship between the wealthy Park family and the destitute Kim clan.', rating: 8.5, language: 'KO' },
-  { id: '8', title: 'Interstellar', year: 2014, genre: 'Sci-Fi', description: 'A team of explorers travel through a wormhole in space in an attempt to ensure humanity\'s survival.', rating: 8.7, language: 'EN' },
-  { id: '9', title: 'La La Land', year: 2016, genre: 'Romance', description: 'While navigating their careers in Los Angeles, a pianist and an actress fall in love while attempting to reconcile their aspirations for the future.', rating: 8.0, language: 'EN' },
-  { id: '10', title: 'Get Out', year: 2017, genre: 'Horror', description: 'A young African-American visits his white girlfriend\'s parents for the weekend, where his simmering uneasiness about their reception of him eventually reaches a boiling point.', rating: 7.8, language: 'EN' },
-  { id: '11', title: 'The Matrix', year: 1999, genre: 'Sci-Fi', description: 'A computer hacker learns from mysterious rebels about the true nature of his reality and his role in the war against its controllers.', rating: 8.7, language: 'EN' },
-  { id: '12', title: 'Pulp Fiction', year: 1994, genre: 'Crime', description: 'The lives of two mob hitmen, a boxer, a gangster and his wife, and a pair of diner bandits intertwine in four tales of violence and redemption.', rating: 8.9, language: 'EN' },
-  { id: '13', title: 'Forrest Gump', year: 1994, genre: 'Drama', description: 'The presidencies of Kennedy and Johnson, the Vietnam War, the Watergate scandal and other historical events unfold from the perspective of an Alabama man with an IQ of 75.', rating: 8.8, language: 'EN' },
-  { id: '14', title: 'The Lion King', year: 1994, genre: 'Animation', description: 'Lion prince Simba and his father are targeted by his bitter uncle, who wants to ascend the throne himself.', rating: 8.5, language: 'EN' },
-  { id: '15', title: 'Amélie', year: 2001, genre: 'Comedy', description: 'Amélie is an innocent and naive girl in Paris with her own sense of justice. She decides to help those around her and, along the way, discovers love.', rating: 8.3, language: 'FR' },
-  { id: '16', title: 'Blade Runner 2049', year: 2017, genre: 'Sci-Fi', description: 'Young Blade Runner K\'s discovery of a long-buried secret leads him to track down former Blade Runner Rick Deckard, who has been missing for thirty years.', rating: 8.0, language: 'EN' },
-  { id: '17', title: 'Her', year: 2013, genre: 'Romance', description: 'In a near future, a lonely writer develops an unlikely relationship with an operating system designed to meet his every need.', rating: 8.0, language: 'EN' },
-  { id: '18', title: 'Whiplash', year: 2014, genre: 'Drama', description: 'A promising young drummer enrolls at a cut-throat music conservatory where his dreams of greatness are mentored by an instructor who will stop at nothing to realize a student\'s potential.', rating: 8.5, language: 'EN' },
-  { id: '19', title: 'Arrival', year: 2016, genre: 'Sci-Fi', description: 'A linguist works with the military to communicate with alien lifeforms after twelve mysterious spacecraft appear around the world.', rating: 7.9, language: 'EN' },
-  { id: '20', title: 'Coco', year: 2017, genre: 'Animation', description: 'Aspiring musician Miguel, confronted with his family\'s ancestral ban on music, enters the Land of the Dead to find his great-great-grandfather, a legendary singer.', rating: 8.4, language: 'EN' },
-  { id: '21', title: 'Joker', year: 2019, genre: 'Thriller', description: 'In Gotham City, mentally troubled comedian Arthur Fleck is disregarded and mistreated by society. He then embarks on a downward spiral of revolution and bloody crime.', rating: 8.4, language: 'EN' },
-  { id: '22', title: 'Avengers: Endgame', year: 2019, genre: 'Action', description: 'After the devastating events of Infinity War, the universe is in ruins. With the help of remaining allies, the Avengers assemble once more in order to reverse Thanos\' actions.', rating: 8.4, language: 'EN' },
-  { id: '23', title: 'Oldboy', year: 2003, genre: 'Thriller', description: 'After being kidnapped and imprisoned for fifteen years, Oh Dae-Su is released, only to find that he must find his captor in five days.', rating: 8.3, language: 'KO' },
-  { id: '24', title: 'Seven', year: 1995, genre: 'Crime', description: 'Two detectives, a rookie and a veteran, hunt a serial killer who uses the seven deadly sins as his motives.', rating: 8.6, language: 'EN' },
-  { id: '25', title: 'Gladiator', year: 2000, genre: 'Action', description: 'A former Roman General sets out to exact vengeance against the corrupt emperor who murdered his family and sent him into slavery.', rating: 8.5, language: 'EN' },
-  { id: '26', title: 'Titanic', year: 1997, genre: 'Romance', description: 'A seventeen-year-old aristocrat falls in love with a kind but poor artist aboard the luxurious, ill-fated R.M.S. Titanic.', rating: 7.9, language: 'EN' },
-  { id: '27', title: 'The Silence of the Lambs', year: 1991, genre: 'Thriller', description: 'A young F.B.I. cadet must receive the help of an incarcerated and manipulative cannibal killer to help catch another serial killer, a madman who skins his victims.', rating: 8.6, language: 'EN' },
-  { id: '28', title: 'Dune', year: 2021, genre: 'Sci-Fi', description: 'Feature adaptation of Frank Herbert\'s science fiction novel about the son of a noble family entrusted with the protection of the most valuable asset and most vital element in the galaxy.', rating: 8.0, language: 'EN' },
-  { id: '29', title: 'Up', year: 2009, genre: 'Animation', description: '78-year-old Carl Fredricksen travels to Paradise Falls in his house equipped with balloons, inadvertently taking a young stowaway.', rating: 8.3, language: 'EN' },
-  { id: '30', title: 'Black Panther', year: 2018, genre: 'Action', description: 'T\'Challa, heir to the hidden but advanced kingdom of Wakanda, must step forward to lead his people into a new future and must confront a challenger from his country\'s past.', rating: 7.3, language: 'EN' }
+// TMDB genre IDs mapped to mood-based presets
+export const VIBE_PRESETS: VibePreset[] = [
+  { label: 'JUST HAD A BREAKUP', genres: [10749, 18], keywords: 'heartbreak' },
+  { label: 'DYSTOPIAN FUTURE', genres: [878, 53] },
+  { label: '90S NOSTALGIA', genres: [35, 18], keywords: '1990s' },
+  { label: 'MIND BENDING', genres: [878, 9648] },
+  { label: 'COZY ANIMATION', genres: [16, 10751] },
+  { label: 'DARK THRILLER', genres: [53, 80] },
 ];
+
+// TMDB genre ID reference (for Gemini service)
+export const TMDB_GENRES: Record<number, string> = {
+  28: 'Action',
+  12: 'Adventure',
+  16: 'Animation',
+  35: 'Comedy',
+  80: 'Crime',
+  99: 'Documentary',
+  18: 'Drama',
+  10751: 'Family',
+  14: 'Fantasy',
+  36: 'History',
+  27: 'Horror',
+  10402: 'Music',
+  9648: 'Mystery',
+  10749: 'Romance',
+  878: 'Science Fiction',
+  10770: 'TV Movie',
+  53: 'Thriller',
+  10752: 'War',
+  37: 'Western',
+};
+
+export const CYLINDER_CONFIG = {
+  POSTER_WIDTH: 3,
+  POSTER_HEIGHT: 4.5,
+  GAP: 0.05,
+  COLUMNS: 20,
+  MIN_MOVIES: 40,
+};
+
+export const TMDB_POSTER_SIZES = {
+  SMALL: 'w185',
+  MEDIUM: 'w342',
+  LARGE: 'w500',
+  ORIGINAL: 'original',
+} as const;

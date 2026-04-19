@@ -1,78 +1,72 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Image, Text } from '@react-three/drei';
+import { useFrame, useLoader } from '@react-three/fiber';
+import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { Movie } from '../types';
+import { getPosterUrl } from '../services/tmdbService';
 
 interface MoviePosterProps {
   movie: Movie;
-  pos: [number, number, number]; // [angle, y, radius]
+  pos: [number, number, number];
   isRecommended: boolean;
   isDimmed: boolean;
   isSelected: boolean;
   onClick: (id: string) => void;
 }
 
-// Updated dimensions from Scene.tsx (3 x 4.8)
 const WIDTH = 3;
-const HEIGHT = 4.8;
+const HEIGHT = 4.5;
+const BORDER_THICKNESS = 0.06;
 
-export const MoviePoster: React.FC<MoviePosterProps> = ({ 
-  movie, 
-  pos, 
-  isRecommended, 
+export const MoviePoster: React.FC<MoviePosterProps> = ({
+  movie,
+  pos,
+  isRecommended,
   isDimmed,
   isSelected,
-  onClick 
+  onClick
 }) => {
   const groupRef = useRef<THREE.Group>(null);
-  const glowRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
   const [angle, y, radius] = pos;
 
   const x = Math.sin(angle) * radius;
   const z = Math.cos(angle) * radius;
 
-  const imageUrl = `https://picsum.photos/400/640?random=${movie.id}`;
+  const imageUrl = getPosterUrl(movie.poster_path, 'w342');
 
-  // Random offset for floating animation to desynchronize them
+  // Use R3F's useLoader which integrates with Suspense
+  const texture = useLoader(THREE.TextureLoader, imageUrl);
+
   const randomOffset = useRef(Math.random() * 100);
 
   useFrame((state, delta) => {
     if (groupRef.current) {
-      // Base rotation: Face outwards
       groupRef.current.rotation.y = angle;
 
-      // Scale effect: Hover scales up. Selected also scales up slightly if not hovered.
-      const targetScale = hovered ? 1.1 : (isSelected ? 1.05 : 1);
+      const targetScale = hovered ? 1.05 : (isSelected ? 1.03 : 1);
       groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), delta * 8);
 
-      // Floating animation for selected or recommended items
       if (isSelected || isRecommended) {
         const time = state.clock.elapsedTime + randomOffset.current;
-        // Float on Y axis
-        const floatY = Math.sin(time * 2) * 0.1;
+        const floatY = Math.sin(time * 2) * 0.08;
         groupRef.current.position.y = y + floatY;
       } else {
         groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, y, delta * 4);
       }
     }
-    
-    // Pulse the glow for selected item
-    if (glowRef.current && isSelected) {
-       glowRef.current.material.opacity = 0.5 + Math.sin(state.clock.elapsedTime * 3) * 0.2;
-    }
   });
 
+  const showBorder = isSelected || hovered;
+  const dimmed = isDimmed && !hovered && !isSelected;
+
   return (
-    <group 
-      ref={groupRef} 
+    <group
+      ref={groupRef}
       position={[x, y, z]}
     >
-      {/* 
-        HIT BOX: Volumetric transparent box
-      */}
-      <mesh 
+      {/* Hit box */}
+      <mesh
         onClick={(e) => {
           e.stopPropagation();
           onClick(movie.id);
@@ -84,44 +78,63 @@ export const MoviePoster: React.FC<MoviePosterProps> = ({
         <meshBasicMaterial transparent opacity={0} />
       </mesh>
 
-      {/* Selected Glow Border (Behind) */}
-      {(isSelected || hovered) && (
-        <mesh position={[0, 0, -0.05]} ref={glowRef}>
-          <planeGeometry args={[WIDTH + 0.2, HEIGHT + 0.2]} />
-          <meshBasicMaterial color={isSelected ? "#8b5cf6" : "#ffffff"} transparent opacity={0.5} />
-        </mesh>
+      {/* White border — 4 thin planes forming a rectangle */}
+      {showBorder && (
+        <>
+          {/* Top */}
+          <mesh position={[0, HEIGHT / 2, -0.01]}>
+            <planeGeometry args={[WIDTH + BORDER_THICKNESS * 2, BORDER_THICKNESS]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={isSelected ? 0.9 : 0.5} />
+          </mesh>
+          {/* Bottom */}
+          <mesh position={[0, -HEIGHT / 2, -0.01]}>
+            <planeGeometry args={[WIDTH + BORDER_THICKNESS * 2, BORDER_THICKNESS]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={isSelected ? 0.9 : 0.5} />
+          </mesh>
+          {/* Left */}
+          <mesh position={[-WIDTH / 2, 0, -0.01]}>
+            <planeGeometry args={[BORDER_THICKNESS, HEIGHT]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={isSelected ? 0.9 : 0.5} />
+          </mesh>
+          {/* Right */}
+          <mesh position={[WIDTH / 2, 0, -0.01]}>
+            <planeGeometry args={[BORDER_THICKNESS, HEIGHT]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={isSelected ? 0.9 : 0.5} />
+          </mesh>
+        </>
       )}
 
       {/* Backing Mesh */}
       <mesh position={[0, 0, -0.02]} raycast={() => null}>
         <planeGeometry args={[WIDTH, HEIGHT]} />
-        <meshStandardMaterial 
-          color="#050505" 
-          metalness={0.9} 
-          roughness={0.1} 
+        <meshStandardMaterial
+          color="#050505"
+          metalness={0.9}
+          roughness={0.1}
         />
       </mesh>
 
-      {/* Poster Image */}
-      <Image 
-        url={imageUrl}
-        transparent
-        opacity={isDimmed && !hovered && !isSelected ? 0.2 : 1}
-        color={isDimmed && !hovered && !isSelected ? "#333" : "white"} 
-        scale={[WIDTH, HEIGHT, 1]}
-        raycast={() => null} 
-      />
-      
+      {/* Poster Image - using manual texture mesh */}
+      <mesh raycast={() => null}>
+        <planeGeometry args={[WIDTH, HEIGHT]} />
+        <meshBasicMaterial
+          map={texture}
+          transparent
+          opacity={dimmed ? 0.2 : 1}
+          color={dimmed ? '#333333' : '#ffffff'}
+          toneMapped={false}
+        />
+      </mesh>
+
       {/* Title */}
       {(hovered || isSelected) && (
         <Text
-          position={[0, -HEIGHT/2 - 0.3, 0.1]} // Move text below poster for cleaner look
-          fontSize={0.25} 
+          position={[0, -HEIGHT / 2 - 0.3, 0.1]}
+          fontSize={0.25}
           color={isSelected ? "#ddd" : "white"}
           anchorX="center"
           anchorY="top"
           maxWidth={3.2}
-          font="https://fonts.gstatic.com/s/playfairdisplay/v30/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKdFvXDXbtM.woff"
           raycast={() => null}
         >
           {movie.title}
