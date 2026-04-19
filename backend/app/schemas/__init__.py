@@ -36,6 +36,20 @@ from app.schemas.companion import (
     CompanionLinkResponse,
     CompanionResponse
 )
+from app.schemas.analytics import (
+    EngagementResponse,
+    EngagementDataPoint,
+    AlgorithmPerformance,
+    AlgorithmPerformanceResponse,
+    GenreTrend,
+    GenreTrendsResponse,
+    CohortRetention,
+    CohortRetentionResponse,
+    MovieMomentum,
+    MovieMomentumResponse,
+    AnalyticsSummary,
+    DashboardResponse
+)
 
 __all__ = [
     # Auth
@@ -52,5 +66,10 @@ __all__ = [
     "InteractionCreate", "InteractionResponse", "WatchHistoryCreate",
     "WatchHistoryResponse", "WatchlistResponse",
     # Companion
-    "CompanionLinkRequest", "CompanionLinkResponse", "CompanionResponse"
+    "CompanionLinkRequest", "CompanionLinkResponse", "CompanionResponse",
+    # Analytics
+    "EngagementResponse", "EngagementDataPoint", "AlgorithmPerformance",
+    "AlgorithmPerformanceResponse", "GenreTrend", "GenreTrendsResponse",
+    "CohortRetention", "CohortRetentionResponse", "MovieMomentum",
+    "MovieMomentumResponse", "AnalyticsSummary", "DashboardResponse"
 ]

@@ -42,6 +42,7 @@ from app.services.recommenders.ai_openai import OpenAIRecommender
 from app.services.recommenders.ai_gemini import GeminiRecommender
 from app.services.recommenders.companion_merger import CompanionMerger, MergedPreferences
 from app.services.recommenders.cold_start import ColdStartHandler
+from app.services.ml_recommenders import RandomForestRecommender, KNNRecommender
 
 
 class EnsembleRecommender:
@@ -56,6 +57,8 @@ class EnsembleRecommender:
         self.claude = ClaudeRecommender(db)
         self.openai = OpenAIRecommender(db)
         self.gemini = GeminiRecommender(db)
+        self.random_forest = RandomForestRecommender(db)
+        self.knn = KNNRecommender(db)
         self.companion_merger = CompanionMerger()
         self.cold_start = ColdStartHandler(db)
 
@@ -279,6 +282,12 @@ class EnsembleRecommender:
             ("collaborative", self.collaborative)
         ]
 
+        # Add ML-based recommenders (always available)
+        if await self.random_forest.is_available():
+            sources.append(("random_forest", self.random_forest))
+        if await self.knn.is_available():
+            sources.append(("knn", self.knn))
+
         # Add AI sources if available
         if await self.claude.is_available():
             sources.append(("claude", self.claude))
@@ -396,17 +405,31 @@ class EnsembleRecommender:
         return final_results
 
     def _get_source_weight(self, source_name: str, history_count: int) -> float:
-        """Get weight for a source based on history count"""
-        weights = {
-            "collaborative": 0.10 if history_count < 10 else 0.30,
-            "content_based": 0.25,
-            "claude": 0.20,
-            "openai": 0.15,
-            "gemini": 0.15,
+        """
+        Get weight for a source based on history count.
+        
+        Updated weights (7 models total):
+        - content_based: 0.20 (was 0.25)
+        - collaborative: 0.15 (was 0.25-0.35, adaptive)
+        - random_forest: 0.15 (NEW - ML model)
+        - knn: 0.10 (NEW - collaborative ML)
+        - claude: 0.15 (was 0.20)
+        - openai: 0.12 (was 0.15)
+        - gemini: 0.13 (was 0.15)
+        """
+        # Base weights for established models
+        base_weights = {
+            "content_based": 0.20,
+            "collaborative": 0.10 if history_count < 10 else 0.15,
+            "random_forest": 0.0 if history_count < 10 else 0.15,  # Needs history
+            "knn": 0.05 if history_count < 10 else 0.10,  # Works with less data
+            "claude": 0.15,
+            "openai": 0.12,
+            "gemini": 0.13,
             "cold_start": 0.30,
             "trending": 0.20
         }
-        return weights.get(source_name, 0.15)
+        return base_weights.get(source_name, 0.10)
 
     async def _create_session(
         self,

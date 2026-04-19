@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from app.config import settings
 from app.database import init_db
-from app.api.routes import auth, users, movies, interactions, recommendations, companions, chat
+from app.api.routes import auth, users, movies, interactions, recommendations, companions, chat, analytics
 
 
 @asynccontextmanager
@@ -56,6 +56,7 @@ app.include_router(interactions.router, prefix="/api/interactions", tags=["Inter
 app.include_router(recommendations.router, prefix="/api/recommendations", tags=["Recommendations"])
 app.include_router(companions.router, prefix="/api/companions", tags=["Companions"])
 app.include_router(chat.router, prefix="/api", tags=["Chat"])
+app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
 
 
 @app.get("/")
