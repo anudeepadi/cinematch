@@ -1,142 +1,62 @@
-# CineMatch - AI-Powered Movie Recommender
+# CineMatch
 
-A sophisticated movie recommendation website using a multi-model AI ensemble (Claude + OpenAI + Gemini) combined with traditional ML techniques for highly personalized recommendations.
+A movie-discovery prototype with swipe feedback, watchlists, genre onboarding and recommendations for solo or shared viewing. The React interface connects to a FastAPI backend and a TMDB movie catalog.
 
-## Features
+**Status:** application prototype from December 2025. Content-based, collaborative, cold-start and optional LLM recommendation adapters are implemented in source; no held-out comparison establishes that the ensemble improves recommendations.
 
-- **Hybrid Recommendation System**: Combines collaborative filtering, content-based filtering, and LLM-enhanced recommendations
-- **Multi-Model AI Ensemble**: Weighted aggregation from Claude, OpenAI GPT, and Gemini
-- **Tinder-Style Swipe Interface**: Swipe right (watchlist), left (pass), or up (watched)
-- **Mood-Based Filtering**: Get recommendations based on your current mood
-- **Watch Together**: Link companion accounts or input manual preferences for joint viewing
-- **Cold-Start Onboarding**: Genre preferences and movie rating quiz for new users
-- **Watchlist Management**: Track movies you want to watch and have watched
+## Try the workflow
 
-## Tech Stack
+After setup, create a local account, choose genres and rate a few movies. Open recommendations, save a title to the watchlist, pass on another, then check that your interaction history is retained. Movie data comes from your configured TMDB account; provider-backed explanations/recommendations require your own optional AI keys.
 
-### Backend
-- **FastAPI** - Modern Python web framework
-- **SQLAlchemy** - ORM with async support
-- **SQLite** (dev) / PostgreSQL (prod)
-- **JWT Authentication** - Secure token-based auth
-- **TMDB API** - Movie data source
-
-### Frontend
-- **React 18** + TypeScript
-- **Vite** - Fast build tool
-- **Tailwind CSS v4** - Utility-first styling
-- **Zustand** - State management
-- **Framer Motion** - Animations
-- **React Router v6** - Routing
-- **React Query** - Data fetching
-
-## Quick Start
-
-### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- TMDB API Key (get one at https://www.themoviedb.org/settings/api)
-
-### Backend Setup
+## Backend
 
 ```bash
-cd backend
+git clone https://github.com/anudeepadi/cinematch.git
+cd cinematch/backend
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+Create `backend/.env` with your own values (there is no tracked backend `.env.example`):
 
-# Install dependencies
-pip install -r requirements.txt
+```dotenv
+DATABASE_URL=sqlite+aiosqlite:///./cinematch.db
+SECRET_KEY=replace-with-your-own-long-random-secret
+TMDB_API_KEY=replace-with-your-own-tmdb-key
+FRONTEND_URL=http://localhost:5173
+```
 
-# Configure environment
-cp .env.example .env
-# Edit .env with your API keys
+Optional AI variables are `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` and `GOOGLE_API_KEY`. SQLite is the default local database; cloud database integrations are optional.
 
-# Seed the database with movies
-python scripts/seed_database.py
-
-# Start the server
+```bash
+python scripts/seed_database.py --quick
 uvicorn app.main:app --reload
 ```
 
-Backend runs at http://localhost:8000
+The seeder contacts TMDB. API documentation is at `http://localhost:8000/docs` once running.
 
-### Frontend Setup
+## Frontend
+
+In another terminal from the repository root:
 
 ```bash
 cd frontend
-
-# Install dependencies
-npm install
-
-# Configure environment (optional)
+npm ci
 cp .env.example .env
-
-# Start dev server
 npm run dev
 ```
 
-Frontend runs at http://localhost:5173
+The default development URL is `http://localhost:5173`. The current package declares React 19 and Vite 7; use a compatible Node runtime. Set `VITE_API_URL=http://localhost:8000` for the local API.
 
-## Environment Variables
+## Recommendation design
 
-### Backend (.env)
-```
-DATABASE_URL=sqlite+aiosqlite:///./cinematch.db
-SECRET_KEY=your-super-secret-key-min-32-chars
-TMDB_API_KEY=your-tmdb-api-key
-OPENAI_API_KEY=sk-...        # Optional
-ANTHROPIC_API_KEY=sk-ant-... # Optional
-GOOGLE_API_KEY=...           # Optional
-```
+[Recommender implementations](backend/app/services/recommenders/) include content-based, collaborative and cold-start strategies, optional OpenAI/Claude/Gemini adapters, an ensemble and companion-preference merging. These are strategies to evaluate, not a claim that more models produce better results.
 
-### Frontend (.env)
-```
-VITE_API_URL=http://localhost:8000
-```
+For a meaningful comparison, freeze a catalog and interaction split, compare a popularity/genre baseline, and report ranking quality and cold-start behavior separately. Record provider/model versions and cost for any LLM variant. No provider calls, new evaluation or end-to-end run were performed during this documentation refresh.
 
-## API Documentation
-
-Once the backend is running, visit:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-
-## Project Structure
-
-```
-movies_recommender/
-├── backend/
-│   ├── app/
-│   │   ├── api/routes/      # API endpoints
-│   │   ├── core/            # Security, config
-│   │   ├── models/          # SQLAlchemy models
-│   │   ├── schemas/         # Pydantic schemas
-│   │   └── services/        # Business logic
-│   │       └── recommenders/  # ML + AI recommenders
-│   └── scripts/             # Database seeding
-├── frontend/
-│   └── src/
-│       ├── api/             # API client
-│       ├── components/      # React components
-│       ├── pages/           # Page components
-│       ├── store/           # Zustand stores
-│       └── types/           # TypeScript types
-└── README.md
-```
-
-## Recommendation Algorithm
-
-The system uses a weighted ensemble approach:
-
-1. **Collaborative Filtering** (25%): Based on similar users' preferences
-2. **Content-Based** (25%): Based on movie embeddings and similarity
-3. **Claude AI** (20%): Nuanced reasoning about preferences
-4. **OpenAI GPT** (15%): Broad knowledge base
-5. **Google Gemini** (15%): Recency awareness
-
-Results are aggregated using Weighted Borda Count with diversity bonuses.
+See [ARCHITECTURE.md](ARCHITECTURE.md) and [deployment notes](RAILWAY_DEPLOYMENT.md) for implementation details. A recorded swipe/recommendation walkthrough remains to be captured from a configured instance.
 
 ## License
 
-MIT
+MIT (as stated in the original project documentation).
